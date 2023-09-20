@@ -28,8 +28,8 @@ def get_open_issues(repo_name: str, open_issues_count: int, per_page: int = 100)
 @flow(task_runner=DaskTaskRunner(
     cluster_kwargs={"n_workers": 4, "threads_per_worker": 2}
 )
-)
-def get_repo_info(
+    )
+def get_repo_info_new(
     repo_name: str = "PrefectHQ/prefect", retries=3, retry_delay_seconds=5
 ):
     repo = get_url(f"https://api.github.com/repos/{repo_name}")
@@ -43,4 +43,4 @@ def get_repo_info(
 
 
 if __name__ == "__main__":
-    get_repo_info()
+    get_repo_info_new()
