@@ -2,7 +2,6 @@ import httpx
 from datetime import timedelta
 from prefect import flow, task, get_run_logger
 from prefect.tasks import task_input_hash
-from prefect_dask.task_runners import DaskTaskRunner
 
 
 @task(cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=1))
