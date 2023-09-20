@@ -25,10 +25,7 @@ def get_open_issues(repo_name: str, open_issues_count: int, per_page: int = 100)
     return [i for p in issues for i in p]
 
 
-@flow(task_runner=DaskTaskRunner(
-    cluster_kwargs={"n_workers": 4, "threads_per_worker": 2}
-)
-    )
+@flow
 def get_repo_info_new(
     repo_name: str = "PrefectHQ/prefect", retries=3, retry_delay_seconds=5
 ):
