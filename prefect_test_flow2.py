@@ -2,12 +2,15 @@ import httpx
 from datetime import timedelta
 from prefect import flow, task, get_run_logger
 from prefect.tasks import task_input_hash
+import requests
 
 
 @task(cache_key_fn=task_input_hash, cache_expiration=timedelta(hours=1))
 def get_url(url: str, params: dict = None):
     response = httpx.get(url, params=params)
     response.raise_for_status()
+    logger = get_run_logger()
+    logger.info('import worked')
     return response.json()
 
 
