@@ -12,7 +12,7 @@ def get_url(url: str, params: dict = None):
     response.raise_for_status()
     logger = get_run_logger()
     logger.info('import worked')
-    archive = [x for x in listdir("/archive")]
+    archive = [x for x in listdir("/")]
     logger.info(f"following files in archive: {'|'.join(archive)}")
     return response.json()
 
