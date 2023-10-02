@@ -1,0 +1,54 @@
+# Welcome to your prefect.yaml file! You can you this file for storing and managing
+# configuration for deploying your flows. We recommend committing this file to source
+# control along with your flow code.
+
+# Generic metadata about thi project
+name: prefect2-flows
+prefect-version: 2.8.3+692.gb99766b51
+
+# build section allows you to manage and build docker images
+build:
+
+# push section allows you to manage if and how this project is uploaded to remote locations
+push:
+
+# pull section allows you to provide instructions for cloning this project in remote locations
+pull:
+- prefect.deployments.steps.git_clone:
+    id: clone-step
+    repository: https://github.com/InTaVia/prefect2-flows.git
+    branch: main
+    access_token:
+- prefect.deployments.steps.run_shell_script:
+    id: get-install-libraries
+    script: pip install .
+    directory: "{{ clone-step.directory }}"
+    stream_output: false
+
+# the deployments section allows you to provide configuration for deploying flows
+deployments:
+- name: test_v18
+  version:
+  tags: [dev]
+  description:
+  entrypoint: prefect_test_flow2.py:get_repo_info_new
+  parameters: {}
+  work_pool:
+    name: intavia
+    work_queue_name:
+    job_variables: {}
+    infra_overrides:
+    - env:
+      - EXTRA_PIP_PACKAGES: httpx requests
+  schedule:
+- name: default
+  version:
+  tags: []
+  description:
+  entrypoint: push_rdf_file_to_github.py:push_data_to_repo_flow
+  parameters: {}
+  work_pool:
+    name: intavia
+    work_queue_name:
+    job_variables: {}
+  schedule:
