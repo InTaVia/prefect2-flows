@@ -18,12 +18,12 @@ pull:
     id: clone-step
     repository: https://github.com/InTaVia/prefect2-flows.git
     branch: main
-    access_token:
-- prefect.deployments.steps.run_shell_script:
-    id: get-install-libraries
-    script: pip install .
+- prefect.deployments.steps.pip_install_requirements:
+    id: install-deps-project
     directory: "{{ clone-step.directory }}"
-    stream_output: false
+    requirements_file: prefect2-flows/requirements.txt
+    stream_output: False
+
 
 # the deployments section allows you to provide configuration for deploying flows
 deployments:
@@ -51,4 +51,7 @@ deployments:
     name: intavia
     work_queue_name:
     job_variables: {}
+    infra_overrides:
+    - env:
+      - EXTRA_PIP_PACKAGES: GitPython requests
   schedule:
