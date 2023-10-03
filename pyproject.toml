@@ -4,6 +4,9 @@ version = "0.1.0"
 description = ""
 authors = ["Matthias Schlögl <matthias.schloegl@oeaw.ac.at>"]
 license = "MIT"
+packages = [
+    { include = "prefect2-flows", from="." },
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
