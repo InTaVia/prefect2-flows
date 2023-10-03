@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "prefect2-flows"
+version = "0.1.0"
+description = ""
+authors = ["Matthias Schlögl <matthias.schloegl@oeaw.ac.at>"]
+license = "MIT"
+packages = [
+    { include = "prefect2-flows" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+#prefect = { path = "/workspaces/prefect2-flows/prefect/", develop = false }
+#prefect = "*"
+prefect = { git = "https://github.com/acdh-oeaw/prefect", branch="v2_10_16"}
+prefect-dask = "^0.2.5"
+pydantic = "<2"
+httpx = "^0.25.0"
+gitpython = "^3.1.37"
+requests = "^2.31.0"
+rdflib = "^7.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
