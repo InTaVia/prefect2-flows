@@ -1057,7 +1057,7 @@ def create_base_graph(base_uri):
 
 
 @task(tags=["rdf", "serialization"])
-def serialize_graph(g, storage_path, named_graph=None):
+def serialize_graph(g, storage_path, add_date_to_file):
     """serializes the RDFLib graph to a given destination
 
     Args:
@@ -1072,7 +1072,11 @@ def serialize_graph(g, storage_path, named_graph=None):
     Path(storage_path).mkdir(parents=True, exist_ok=True)
     for s, p, o in g.triples((None, bioc.inheres_in, None)):
         g.add((o, bioc.bearer_of, s))
-    f_path = f"{storage_path}/apis_data_{datetime.now().strftime('%d-%m-%Y')}.ttl"
+    Path(storage_path).mkdir(parents=True, exist_ok=True)
+    f_path = f"{storage_path}/apis_data"
+    if add_date_to_file:
+        f_path += f"_{datetime.now().strftime('%d-%m-%Y')}"
+    f_path += ".ttl"
     g.serialize(
         destination=f_path,
         format="turtle",
@@ -1135,7 +1139,12 @@ class Params(BaseModel):
     )
     storage_path: DirectoryPath = Field(
         "/archive/serializations/APIS",
-        description="Path to store the turtle files within the container excuting the flow",
+        description="Path of the turtle file to use for serialization within the container excuting the flow",
+    )
+    add_date_to_file: bool = Field(
+        False,
+        alias="Add date to file",
+        description="Whether to add the current date to the file name",
     )
     branch: str = Field(None, description="GIT branch to push to and create PR")
     upload_data: bool = Field(
@@ -1334,18 +1343,19 @@ def create_apis_rdf_serialization(params: Params):
         unmapped("place"),
         unmapped(params.endpoint),
     )
-    places_data_fin_filtered = list(
-        chain.from_iterable(
-            p.result()
-            for p in places_data_fin
-            if not p.wait().is_failed() and p.result() is not None
-        )
-    )
+    places_data_fin_filtered = [
+        p.result()
+        for p in places_data_fin
+        if not p.wait().is_failed() and p.result() is not None
+    ]
     places_out = render_place.map(
         places_data_fin_filtered, unmapped(g), unmapped(params.base_uri_serialization)
     )
     out = serialize_graph.submit(
-        g, params.storage_path, params.named_graph, wait_for=[places_out]
+        g,
+        params.storage_path,
+        params.add_date_to_file,
+        wait_for=[places_out],
     )
     if params.upload_data:
         upload_data(out, params.named_graph, upstream_tasks=[out])
@@ -1364,4 +1374,9 @@ def create_apis_rdf_serialization(params: Params):
 # )
 # flow.storage = GitHub(repo="InTaVia/prefect-flows", path="create_apis_graph_v1.py")
 if __name__ == "__main__":
-    create_apis_rdf_serialization(params=Params(filter_params={"name": "Streit"}))
+    create_apis_rdf_serialization(
+        params=Params(
+            filter_params={"name": "Streit"},
+            storage_path="/workspaces/prefect2-flows/data_serializations",
+        )
+    )
