@@ -4,7 +4,7 @@ import shutil
 import requests
 import git
 from pydantic import BaseModel, DirectoryPath, Field, FilePath, HttpUrl
-from prefect import flow, task
+from prefect import flow, get_run_logger, task
 from prefect.blocks.system import Secret
 
 
@@ -31,8 +31,10 @@ def push_data_to_repo(
         branch (str, optional): Name of the feature branch to use, suto-generated if None. Defaults to None.
     """
 
+    logger = get_run_logger()
     full_local_path = os.path.join(os.getcwd(), "source-data")
     remote = f"https://{username}:{password}@github.com/{repo}.git"
+    logger.info(f"Cloning {remote} to {full_local_path}")
     repo = git.Repo.clone_from(remote, full_local_path)
     repo.git.checkout("-b", branch)
     os.makedirs(
