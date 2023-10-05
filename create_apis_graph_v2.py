@@ -134,12 +134,12 @@ def render_personplace_relation(rel, g, base_uri):
     """
     # prepare nodes
     place = None
-    place_uri = URIRef(f"{base_uri}place/{rel['related_place']['id']}")
+    place_uri = idmapis[f"place.{rel['related_place']['id']}"]
     if rel["relation_type"]["id"] == 595:
         # define serialization for "person born in place relations"
         g.add(
             (
-                URIRef(f"{base_uri}birthevent/{rel['related_person']['id']}"),
+                idmapis[f"birthevent.{rel['related_person']['id']}"],
                 crm.P7_took_place_at,
                 place_uri,
             )
@@ -149,14 +149,14 @@ def render_personplace_relation(rel, g, base_uri):
         # define serialization for "person born in place relations"
         g.add(
             (
-                URIRef(f"{base_uri}deathevent/{rel['related_person']['id']}"),
+                idmapis[f"deathevent.{rel['related_person']['id']}"],
                 crm.P7_took_place_at,
                 place_uri,
             )
         )
         rel_rendered = True
     else:
-        event_uri = URIRef(f"{base_uri}event/personplace/{rel['id']}")
+        event_uri = idmapis[f"event.personplace.{rel['id']}"]
         if (event_uri, None, None) not in g:
             g = render_event(rel, "personplace", event_uri, g)
         g.add((event_uri, crm.P7_took_place_at, place_uri))
@@ -201,9 +201,9 @@ def render_personperson_relation(rel, g, base_uri):
         logger.warning("Relation type is undefined, skipping rest of task")
         # return Exception("Relation type is undefined, skipping")
     person = None
-    pers_uri = URIRef(f"{base_uri}personproxy/{rel['related_personA']['id']}")
-    n_rel_type = URIRef(f"{base_uri}personrelation/{rel['id']}")
-    n_relationtype = URIRef(f"{idmrelations}{rel['relation_type']['id']}")
+    pers_uri = idmapis[f"personproxy.{rel['related_personA']['id']}"]
+    n_rel_type = idmapis[f"personrelation.{rel['id']}"]
+    n_relationtype = idmrelations[f"{rel['relation_type']['id']}"]
     if rel["relation_type"]["id"] in family_relations:
         g.add((pers_uri, bioc.has_family_relation, n_rel_type))
     else:
@@ -212,7 +212,7 @@ def render_personperson_relation(rel, g, base_uri):
     g.add((n_rel_type, RDFS.label, Literal(f"{rel['relation_type']['label']}")))
     g.add(
         (
-            URIRef(f"{base_uri}personproxy/{rel['related_personB']['id']}"),
+            idmapis[f"personproxy.{rel['related_personB']['id']}"],
             bioc.bearer_of,
             n_rel_type,
         )
@@ -229,52 +229,48 @@ def render_personperson_relation(rel, g, base_uri):
                 (
                     n_relationtype,
                     RDFS.subClassOf,
-                    URIRef(f"{idmrelations}{rel['relation_type']['parent_id']}"),
+                    idmrelations[f"{rel['relation_type']['parent_id']}"],
                 )
             )
             if rel["relation_type"]["id"] in family_relations:
                 g.add(
                     (
-                        URIRef(f"{idmrelations}{rel['relation_type']['parent_id']}"),
+                        idmrelations[f"{rel['relation_type']['parent_id']}"],
                         RDFS.subClassOf,
-                        URIRef(bioc.Family_Relationship_Role),
+                        bioc.Family_Relationship_Role,
                     )
                 )
             else:
                 g.add(
                     (
-                        URIRef(f"{idmrelations}{rel['relation_type']['parent_id']}"),
+                        idmrelations[f"{rel['relation_type']['parent_id']}"],
                         RDFS.subClassOf,
-                        URIRef(bioc.Person_Relationship_Role),
+                        bioc.Person_Relationship_Role,
                     )
                 )
         else:
             if rel["relation_type"]["id"] in family_relations:
                 g.add(
                     (
-                        URIRef(f"{idmrelations}{rel['relation_type']['id']}"),
+                        idmrelations[f"{rel['relation_type']['id']}"],
                         RDFS.subClassOf,
-                        URIRef(bioc.Family_Relationship_Role),
+                        bioc.Family_Relationship_Role,
                     )
                 )
             else:
                 g.add(
                     (
-                        URIRef(f"{idmrelations}{rel['relation_type']['id']}"),
+                        idmrelations[f"{rel['relation_type']['id']}"],
                         RDFS.subClassOf,
-                        URIRef(bioc.Person_Relationship_Role),
+                        bioc.Person_Relationship_Role,
                     )
                 )
 
     else:
         if rel["relation_type"]["id"] in family_relations:
-            g.add(
-                (n_relationtype, RDFS.subClassOf, URIRef(bioc.Family_Relationship_Role))
-            )
+            g.add((n_relationtype, RDFS.subClassOf, bioc.Family_Relationship_Role))
         else:
-            g.add(
-                (n_relationtype, RDFS.subClassOf, URIRef(bioc.Person_Relationship_Role))
-            )
+            g.add((n_relationtype, RDFS.subClassOf, bioc.Person_Relationship_Role))
     logger.info(f" personpersonrelation serialized for: {rel['related_personA']['id']}")
     # return g
     # group which is part of this relation
@@ -293,7 +289,7 @@ def render_personrole_from_relation(rel, g, base_uri):
     # prepare nodes
     logger = get_run_logger()
     if (
-        URIRef(f"{idmapis}personrole/{rel['relation_type']['id']}"),
+        idmapis[f"personrole.{rel['relation_type']['id']}"],
         None,
         None,
     ) not in g:
@@ -311,14 +307,14 @@ def render_personrole_from_relation(rel, g, base_uri):
     parent = "parent_id"
     if "parent_id" not in role:
         parent = "parent_class"
-    n_role = URIRef(f"{idmapis}personrole/{role['id']}")
+    n_role = idmapis[f"personrole.{role['id']}"]
     g.add((n_role, RDFS.label, Literal(f"{role[label]}", lang="de")))
     if role[parent] is not None:
         if "parent_id" in role:
             p_id = role["parent_id"]
         else:
             p_id = role["parent_class"]["id"]
-        if (URIRef(f"{idmapis}personrole/{p_id}"), None, None) not in g:
+        if (idmapis[f"personrole.{p_id}"], None, None) not in g:
             return f"{base_uri}/apis/api/vocabularies/person{second_entity}relation/{role['parent_id']}"
     else:
         g.add((n_role, RDF.type, bioc.Actor_Role))
@@ -331,14 +327,14 @@ def render_personrole(role, g, base_uri):
     if role is None:
         logger.warning("No role given")
         return None
-    if (URIRef(f"{idmapis}personrole/{role['id']}"), None, None) in g:
+    if (idmapis[f"personrole.{role['id']}"], None, None) in g:
         logger.info("personrole already in graph")
         return None
-    n_role = URIRef(f"{idmapis}personrole/{role['id']}")
+    n_role = idmapis[f"personrole.{role['id']}"]
     g.add((n_role, RDFS.label, Literal(f"{role['name']}", lang="de")))
     if role["parent_class"] is not None:
         if (
-            URIRef(f"{idmapis}personrole/{role['parent_class']['id']}"),
+            idmapis[f"personrole.{role['parent_class']['id']}"],
             None,
             None,
         ) not in g:
@@ -352,17 +348,17 @@ def render_personrole(role, g, base_uri):
 @task
 def render_personinstitution_relation(rel: dict, g: Graph) -> list:
     logger = get_run_logger()
-    pers_uri = URIRef(f"{idmapis}personproxy/{rel['related_person']['id']}")
+    pers_uri = idmapis[f"personproxy.{rel['related_person']['id']}"]
     inst = None
     # connect personproxy and institutions with grouprelationship
-    n_rel_type = URIRef(f"{idmapis}grouprelation/{rel['id']}")
+    n_rel_type = idmapis[f"grouprelation.{rel['id']}"]
     g.add((pers_uri, bioc.has_group_relation, n_rel_type))
     # Person has a specific group relation
     g.add(
         (
             n_rel_type,
             RDF.type,
-            URIRef(f"{idmapis}grouprole/{rel['relation_type']['id']}"),
+            idmapis[f"grouprole.{rel['relation_type']['id']}"],
         )
     )
     # define type of grouprelation
@@ -370,9 +366,9 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
         # if the relationtype has a superclass, it is added here
         g.add(
             (
-                URIRef(f"{idmapis}grouprole/{rel['relation_type']['id']}"),
+                idmapis[f"grouprole.{rel['relation_type']['id']}"],
                 rdfs.subClassOf,
-                URIRef(f"{idmapis}grouprole/{rel['relation_type']['parent_id']}"),
+                idmapis[f"grouprole.{rel['relation_type']['parent_id']}"],
             )
         )
     g.add((n_rel_type, rdfs.label, Literal(rel["relation_type"]["label"])))
@@ -381,13 +377,13 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
         (
             n_rel_type,
             bioc.inheres_in,
-            URIRef(f"{idmapis}groupproxy/{rel['related_institution']['id']}"),
+            idmapis[f"groupproxy.{rel['related_institution']['id']}"],
         )
     )
     # g.add((URIRef(
     #    f"{idmapis}groupproxy/{rel['related_institution']['id']}"), bioc.bearer_of, n_rel_type))
     # group which is part of this relation
-    g.add((URIRef(f"{idmapis}career/{rel['id']}"), RDF.type, idmcore.Career))
+    g.add((idmapis[f"career.{rel['id']}"], RDF.type, idmcore.Career))
     # add career event of type idmcore:career
     g.add(
         (
@@ -398,7 +394,7 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
     )
     g.add(
         (
-            URIRef(f"{idmapis}career/{rel['id']}"),
+            idmapis[f"career.{rel['id']}"],
             rdfs.label,
             Literal(
                 f"{rel['related_person']['label']} {rel['relation_type']['label']} {rel['related_institution']['label']}"
@@ -408,66 +404,60 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
     # label for career event
     g.add(
         (
-            URIRef(f"{idmapis}career/{rel['id']}"),
+            idmapis[f"career.{rel['id']}"],
             bioc.had_participant_in_role,
-            URIRef(f"{idmapis}personrole/{rel['id']}/{rel['related_person']['id']}"),
+            idmapis[f"personrole.{rel['id']}.{rel['related_person']['id']}"],
         )
     )
     # role of participating person in the career event
     g.add(
         (
-            URIRef(f"{idmapis}personproxy/{rel['related_person']['id']}"),
+            idmapis[f"personproxy.{rel['related_person']['id']}"],
             bioc.bearer_of,
-            URIRef(f"{idmapis}personrole/{rel['id']}/{rel['related_person']['id']}"),
+            idmapis[f"personrole.{rel['id']}.{rel['related_person']['id']}"],
         )
     )
     g.add(
         (
-            URIRef(f"{idmapis}personrole/{rel['id']}/{rel['related_person']['id']}"),
+            idmapis[f"personrole.{rel['id']}.{rel['related_person']['id']}"],
             RDF.type,
-            URIRef(f"{idmapis}personrole/{rel['relation_type']['id']}"),
+            idmapis[f"personrole.{rel['relation_type']['id']}"],
         )
     )
     if rel["relation_type"]["parent_id"] is not None:
         g.add(
             (
-                URIRef(f"{idmapis}personrole/{rel['relation_type']['id']}"),
+                idmapis[f"personrole.{rel['relation_type']['id']}"],
                 RDF.type,
-                URIRef(f"{idmapis}personrole/{rel['relation_type']['parent_id']}"),
+                idmapis[f"personrole.{rel['relation_type']['parent_id']}"],
             )
         )
     # person which inheres this role
     g.add(
         (
-            URIRef(f"{idmapis}career/{rel['id']}"),
+            idmapis[f"career.{rel['id']}"],
             bioc.had_participant_in_role,
-            URIRef(
-                f"{idmapis}grouprole/{rel['id']}/{rel['related_institution']['id']}"
-            ),
+            idmapis[f"grouprole.{rel['id']}.{rel['related_institution']['id']}"],
         )
     )
     # role of institution/ group in the career event
     g.add(
         (
-            URIRef(
-                f"{idmapis}grouprole/{rel['id']}/{rel['related_institution']['id']}"
-            ),
+            idmapis[f"grouprole.{rel['id']}.{rel['related_institution']['id']}"],
             RDF.type,
             bioc.Group_Relationship_Role,
         )
     )
     g.add(
         (
-            URIRef(
-                f"{idmapis}grouprole/{rel['id']}/{rel['related_institution']['id']}"
-            ),
+            idmapis[f"grouprole.{rel['id']}.{rel['related_institution']['id']}"],
             bioc.inheres_in,
-            URIRef(f"{idmapis}groupproxy/{rel['related_institution']['id']}"),
+            idmapis[f"groupproxy.{rel['related_institution']['id']}"],
         )
     )
     # role which inheres the institution/ group
     if (
-        URIRef(f"{idmapis}groupproxy/{rel['related_institution']['id']}"),
+        idmapis[f"groupproxy.{rel['related_institution']['id']}"],
         None,
         None,
     ) not in g:
@@ -477,26 +467,26 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
     if rel["start_date"] is not None or rel["end_date"] is not None:
         g.add(
             (
-                URIRef(f"{idmapis}career/{rel['id']}"),
+                idmapis[f"career.{rel['id']}"],
                 URIRef(f"{crm}P4_has_time-span"),
-                URIRef(f"{idmapis}career/timespan/{rel['id']}"),
+                idmapis[f"career.timespan.{rel['id']}"],
             )
         )
     for rel_plcs in g.objects(
-        URIRef(f"{idmapis}groupproxy/{rel['related_institution']['id']}"),
+        idmapis[f"groupproxy.{rel['related_institution']['id']}"],
         crm.P74_has_current_or_former_residence,
     ):
-        g.add((URIRef(f"{idmapis}career/{rel['id']}"), crm.P7_took_place_at, rel_plcs))
+        g.add((idmapis[f"career.{rel['id']}"], crm.P7_took_place_at, rel_plcs))
     logger.info(
         f" personinstitutionrelation serialized for: {rel['related_person']['id']}"
     )
     if rel["start_date"] is not None:
         g = create_time_span_tripels(
-            "start", URIRef(f"{idmapis}career/timespan/{rel['id']}"), rel, g
+            "start", idmapis[f"career.timespan.{rel['id']}"], rel, g
         )
     if rel["end_date"] is not None:
         g = create_time_span_tripels(
-            "end", URIRef(f"{idmapis}career/timespan/{rel['id']}"), rel, g
+            "end", idmapis[f"career.timespan.{rel['id']}"], rel, g
         )
     """     if (rel['start_date'] is not None) and (rel['end_date'] is not None):
         g.add((URIRef(f"{idmapis}career/timespan/{rel['id']}"), crm.P82a_begin_of_the_begin, (Literal(
@@ -526,7 +516,8 @@ def render_person(person, g, base_uri):
         person (_type_): _description_
         g (_type_): _description_
     """
-    pers_uri = URIRef(f"{idmapis}personproxy/{person['id']}")
+    # pers_uri = URIRef(idmapis + f"personproxy/{person['id']}")
+    pers_uri = idmapis[f"personproxy.{person['id']}"]
     if (pers_uri, None, None) in g:
         return g
     g.add((pers_uri, RDF.type, crm.E21_Person))
@@ -536,7 +527,7 @@ def render_person(person, g, base_uri):
     g.add((pers_uri, owl.sameAs, URIRef(f"{base_uri}/entity/{person['id']}")))
     # add sameAs
     # add appellations
-    node_main_appellation = URIRef(f"{idmapis}appellation/label/{person['id']}")
+    node_main_appellation = idmapis[f"appellation.label.{person['id']}"]
     g.add((node_main_appellation, RDF.type, crm.E33_E41_Linguistic_Appellation))
     g.add(
         (
@@ -549,9 +540,7 @@ def render_person(person, g, base_uri):
     )
     g.add((pers_uri, crm.P1_is_identified_by, node_main_appellation))
     if person["first_name"] is not None:
-        node_first_name_appellation = URIRef(
-            f"{idmapis}appellation/first_name/{person['id']}"
-        )
+        node_first_name_appellation = idmapis[f"appellation.first_name.{person['id']}"]
         g.add(
             (node_first_name_appellation, RDF.type, crm.E33_E41_Linguistic_Appellation)
         )
@@ -560,9 +549,7 @@ def render_person(person, g, base_uri):
             (node_main_appellation, crm.P148_has_component, node_first_name_appellation)
         )
     if person["name"] is not None:
-        node_last_name_appellation = URIRef(
-            f"{idmapis}appellation/last_name/{person['id']}"
-        )
+        node_last_name_appellation = idmapis[f"appellation.last_name.{person['id']}"]
         g.add(
             (node_last_name_appellation, RDF.type, crm.E33_E41_Linguistic_Appellation)
         )
@@ -571,10 +558,10 @@ def render_person(person, g, base_uri):
             (node_main_appellation, crm.P148_has_component, node_last_name_appellation)
         )
     if person["start_date"] is not None:
-        node_birth_event = URIRef(f"{idmapis}birthevent/{person['id']}")
-        node_role = URIRef(f"{idmapis}born_person/{person['id']}")
-        node_role_class = URIRef(f"{idmrole}born_person")
-        node_time_span = URIRef(f"{idmapis}birth/timespan/{person['id']}")
+        node_birth_event = idmapis[f"birthevent.{person['id']}"]
+        node_role = idmapis[f"born_person.{person['id']}"]
+        node_role_class = idmrole[f"born_person"]
+        node_time_span = idmapis[f"birth.timespan.{person['id']}"]
         g.add((node_role, bioc.inheres_in, pers_uri))
         g.add((node_role, RDF.type, node_role_class))
         g.add((node_role_class, rdfs.subClassOf, bioc.Event_Role))
@@ -587,14 +574,14 @@ def render_person(person, g, base_uri):
                 Literal(f"Birth of {person['first_name']} {person['name']}"),
             )
         )
-        g.add((node_birth_event, URIRef(crm + "P4_has_time-span"), node_time_span))
+        g.add((node_birth_event, crm["P4_has_time-span"], node_time_span))
         g.add((node_birth_event, crm.P98_brought_into_life, pers_uri))
         g = create_time_span_tripels("start", node_time_span, person, g)
     if person["end_date"] is not None:
-        node_death_event = URIRef(f"{idmapis}deathevent/{person['id']}")
-        node_role = URIRef(f"{idmapis}deceased_person/{person['id']}")
-        node_role_class = URIRef(f"{idmrole}deceased_person")
-        node_time_span = URIRef(f"{idmapis}death/timespan/{person['id']}")
+        node_death_event = idmapis[f"deathevent.{person['id']}"]
+        node_role = idmapis[f"deceased_person.{person['id']}"]
+        node_role_class = idmrole["deceased_person"]
+        node_time_span = idmapis[f"death.timespan.{person['id']}"]
         g.add((node_role, bioc.inheres_in, pers_uri))
         g.add((node_role, RDF.type, node_role_class))
         g.add((node_role_class, rdfs.subClassOf, bioc.Event_Role))
@@ -607,15 +594,15 @@ def render_person(person, g, base_uri):
                 Literal(f"Death of {person['first_name']} {person['name']}"),
             )
         )
-        g.add((node_death_event, URIRef(crm + "P4_has_time-span"), node_time_span))
+        g.add((node_death_event, crm["P4_has_time-span"], node_time_span))
         g.add((node_death_event, crm.P100_was_death_of, pers_uri))
         g = create_time_span_tripels("end", node_time_span, person, g)
     for prof in person["profession"]:
-        prof_node = URIRef(f"{idmapis}occupation/{prof['id']}")
+        prof_node = idmapis[f"occupation.{prof['id']}"]
         g.add((pers_uri, bioc.has_occupation, prof_node))
         g.add((prof_node, rdfs.label, Literal(prof["label"])))
         if prof["parent_id"] is not None:
-            parent_prof_node = URIRef(f"{idmapis}occupation/{prof['parent_id']}")
+            parent_prof_node = idmapis[f"occupation.{prof['parent_id']}"]
             g.add((prof_node, rdfs.subClassOf, parent_prof_node))
             g.add((prof_node, rdfs.subClassOf, bioc.Occupation))
         else:
@@ -630,19 +617,19 @@ def render_person(person, g, base_uri):
                 (
                     pers_uri,
                     idmcore.bio_link,
-                    URIRef(f"{idmapis}text/{person['id']}/bio"),
+                    idmapis[f"text.{person['id']}.bio"],
                 )
             )
             g.add(
                 (
-                    URIRef(f"{idmapis}text/{person['id']}/bio"),
+                    idmapis[f"text.{person['id']}.bio"],
                     idmcore.full_bio_link,
                     URIRef(person["text"][0]["url"]),
                 )
             )
             g.add(
                 (
-                    URIRef(f"{idmapis}text/{person['id']}/bio"),
+                    idmapis[f"text.{person['id']}.bio"],
                     idmcore.short_bio_link,
                     URIRef(person["text"][1]["url"]),
                 )
@@ -671,19 +658,21 @@ def render_person(person, g, base_uri):
 @task()
 def render_organizationplace_relation(rel, g):
     place = None
-    node_org = URIRef(f"{idmapis}groupproxy/{rel['related_institution']['id']}")
+    node_org = idmapis[f"groupproxy.{rel['related_institution']['id']}"]
     if (
-        URIRef(f"{idmapis}place/{rel['related_place']['id']}"),
+        idmapis[f"place.{rel['related_place']['id']}"],
         None,
         None,
-    ) not in g and rel["related_place"]["id"] not in glob_list_entities["places"]:
+    ) not in g and rel[
+        "related_place"
+    ]["id"] not in glob_list_entities["places"]:
         place = rel["related_place"]["id"]
         glob_list_entities["places"].append(place)
     g.add(
         (
             node_org,
             crm.P74_has_current_or_former_residence,
-            URIRef(f"{idmapis}place/{rel['related_place']['id']}"),
+            idmapis[f"place.{rel['related_place']['id']}"],
         )
     )
     return place
@@ -700,8 +689,8 @@ def render_organization(organization, g, base_uri):
     #    res = await get_entity(organization, "institution")
     #    res_relations = await get_organization_relations(organization, ["institutionplace"])
     # setup basic nodes
-    node_org = URIRef(f"{idmapis}groupproxy/{organization['id']}")
-    appelation_org = URIRef(f"{idmapis}groupappellation/{organization['id']}")
+    node_org = idmapis[f"groupproxy.{organization['id']}"]
+    appelation_org = idmapis[f"groupappellation.{organization['id']}"]
     # connect Group Proxy and person in named graphbgn:BioDes
     g.add((node_org, RDF.type, crm.E74_Group))
     g.add((node_org, RDF.type, idmcore.Group))
@@ -716,10 +705,8 @@ def render_organization(organization, g, base_uri):
     # add group appellation and define it as linguistic appellation
     if organization["start_date_written"] is not None:
         if len(organization["start_date_written"]) >= 4:
-            start_date_node = URIRef(f"{idmapis}groupstart/{organization['id']}")
-            start_date_time_span = URIRef(
-                f"{idmapis}groupstart/timespan/{organization['id']}"
-            )
+            start_date_node = idmapis[f"groupstart.{organization['id']}"]
+            start_date_time_span = idmapis[f"groupstart.timespan.{organization['id']}"]
             # print(row['institution_name'], ':', row['institution_start_date'], row['institution_end_date'], row['institution_start_date_written'], row['institution_end_date_written'])
             g.add((start_date_node, RDF.type, crm.E63_Beginning_of_Existence))
             g.add((start_date_node, crm.P92_brought_into_existence, node_org))
@@ -747,10 +734,8 @@ def render_organization(organization, g, base_uri):
             #         f"{res['start_date']}T23:59:59", datatype=XSD.dateTime))))
     if organization["end_date_written"] is not None:
         if len(organization["end_date_written"]) >= 4:
-            end_date_node = URIRef(f"{idmapis}groupend/{organization['id']}")
-            end_date_time_span = URIRef(
-                f"{idmapis}groupend/timespan/{organization['id']}"
-            )
+            end_date_node = idmapis[f"groupend.{organization['id']}"]
+            end_date_time_span = idmapis[f"groupend.timespan.{organization['id']}"]
             # print(row['institution_name'], ':', row['institution_start_date'], row['institution_end_date'], row['institution_start_date_written'], row['institution_end_date_written'])
             g.add((end_date_node, RDF.type, crm.E64_End_of_Existence))
             g.add((end_date_node, crm.P93_took_out_of_existence, node_org))
@@ -786,9 +771,9 @@ def render_event(event, event_type, node_event, g):
     """
     # prepare basic node types
     # node_event = URIRef(f"{idmapis}{event_type}/{event['id']}")
-    node_event_role = URIRef(f"{idmapis}{event_type}/eventrole/{event['id']}")
-    node_pers = URIRef(f"{idmapis}personproxy/{event['related_person']['id']}")
-    node_roletype = URIRef(f"{idmrole}{event['relation_type']['id']}")
+    node_event_role = idmapis[f"{event_type}.eventrole.{event['id']}"]
+    node_pers = idmapis[f"personproxy.{event['related_person']['id']}"]
+    node_roletype = idmrole[f"{event['relation_type']['id']}"]
     g.add((node_event_role, bioc.inheres_in, node_pers))
     g.add((node_event_role, RDF.type, node_roletype))
     g.add((node_roletype, rdfs.subClassOf, bioc.Event_Role))
@@ -809,7 +794,7 @@ def render_event(event, event_type, node_event, g):
         )
     )
     if event["start_date"] is not None:
-        node_timespan = URIRef(f"{idmapis}{event_type}/timespan/{event['id']}")
+        node_timespan = idmapis[f"{event_type}.timespan.{event['id']}"]
         g.add((node_event, URIRef(crm + "P4_has_time-span"), node_timespan))
         # add time-span to event
         g = create_time_span_tripels("start", node_timespan, event, g)
@@ -831,10 +816,10 @@ def render_place(place, g, base_uri):
     # setup basic nodes
     if place is None:
         return g
-    node_place = URIRef(f"{idmapis}place/{place['id']}")
+    node_place = idmapis[f"place.{place['id']}"]
     g.add((node_place, RDFS.label, Literal(place["name"])))
-    node_appelation = URIRef(f"{idmapis}placeappellation/{place['id']}")
-    node_plc_identifier = URIRef(f"{idmapis}placeidentifier/{place['id']}")
+    node_appelation = idmapis[f"placeappellation.{place['id']}"]
+    node_plc_identifier = idmapis[f"placeidentifier.{place['id']}"]
 
     g.add((node_place, RDF.type, crm.E53_Place))
     # define place as Cidoc E53 Place
@@ -851,7 +836,7 @@ def render_place(place, g, base_uri):
         (
             node_place,
             crm.P1_is_identified_by,
-            URIRef(f"{idmapis}placeidentifier/{place['id']}"),
+            idmapis[f"placeidentifier.{place['id']}"],
         )
     )
     # add APIS Identifier as Identifier
@@ -861,7 +846,7 @@ def render_place(place, g, base_uri):
     # add label to APIS Identifier
     # define that individual in APIS named graph and APIS entity are the same
     if place["lat"] is not None and place["lng"] is not None:
-        node_spaceprimitive = URIRef(f"{idmapis}spaceprimitive/{place['id']}")
+        node_spaceprimitive = idmapis[f"spaceprimitive.{place['id']}"]
         g.add((node_place, crm.P168_place_is_defined_by, node_spaceprimitive))
         g.add((node_spaceprimitive, rdf.type, crm.E94_Space_Primitive))
         g.add(
