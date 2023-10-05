@@ -13,6 +13,8 @@ from rdflib import Graph, Literal, RDF, Namespace, URIRef
 from rdflib.namespace import RDFS, XSD
 from typing import Any, Tuple
 from pydantic import BaseModel, DirectoryPath, Field, HttpUrl
+from push_rdf_file_to_github import push_data_to_repo_flow
+from push_rdf_file_to_github import Params as ParamsPush
 
 # from prefect.engine.signals import LOOP, SUCCESS, SKIP, RETRY, FAIL
 
@@ -1336,16 +1338,16 @@ def create_apis_rdf_serialization(params: Params):
     places_out = render_place.map(
         places_data_fin_filtered, unmapped(g), unmapped(params.base_uri_serialization)
     )
-    out = serialize_graph.submit(
+    file_path = serialize_graph.submit(
         g,
         params.storage_path,
         params.add_date_to_file,
         wait_for=[places_out],
     )
     if params.upload_data:
-        upload_data(out, params.named_graph, upstream_tasks=[out])
+        upload_data(file_path, params.named_graph, wait_for=[file_path])
     if params.push_data_to_repo:
-        push_data_to_repo(out, params.branch)
+        push_data_to_repo_flow(ParamsPush(branch=params.branch, file_path=file_path))
 
 
 # state = flow.run(executor=LocalExecutor(), parameters={
