@@ -53,7 +53,7 @@ class Params(BaseModel):
         description="GitHub Repository in the format 'OWNER/REPO'",
     )
     branch_name: str = Field(
-        None,
+        ...,
         description="Branch name to use, auto-generated if not set",
     )
     branch_name_add_date: bool = Field(

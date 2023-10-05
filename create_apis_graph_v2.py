@@ -1133,7 +1133,7 @@ class Params(BaseModel):
         alias="Add date to file",
         description="Whether to add the current date to the file name",
     )
-    branch: str = Field(None, description="GIT branch to push to and create PR")
+    branch: str = Field(..., description="GIT branch to push to and create PR")
     upload_data: bool = Field(
         False,
         description="Whether to directly upload the data into a configured triplestore",
