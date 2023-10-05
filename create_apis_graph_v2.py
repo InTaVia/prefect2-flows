@@ -1350,7 +1350,7 @@ def create_apis_rdf_serialization(params: Params):
     if params.push_data_to_repo:
         logger.info(f"Pushing data to repo, using file path: {file_path.result()}")
         push_data_to_repo_flow(
-            params=ParamsPush(branch=params.branch, file_path=file_path.result())
+            params=ParamsPush(branch_name=params.branch, file_path=file_path.result())
         )
 
 
