@@ -93,8 +93,8 @@ class Params(BaseModel):
 
 @flow()
 def push_data_to_repo_flow(params: Params):
-    username = Secret.load(params.username_secret)
-    password = Secret.load(params.password_secret)
+    username = Secret.load(params.username_secret).get()
+    password = Secret.load(params.password_secret).get()
     if params.branch_name_add_date:
         branch_name = f"{params.branch_name}-{datetime.now().strftime('%d-%m-%Y')}"
     else:
