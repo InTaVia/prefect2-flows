@@ -1146,6 +1146,7 @@ class Params(BaseModel):
 
 @flow
 def create_apis_rdf_serialization(params: Params):
+    logger = get_run_logger()
     g = create_base_graph(params.base_uri_serialization)
     persons = []
     res_persons = get_entities_relations_list(
@@ -1347,7 +1348,10 @@ def create_apis_rdf_serialization(params: Params):
     if params.upload_data:
         upload_data(file_path, params.named_graph, wait_for=[file_path])
     if params.push_data_to_repo:
-        push_data_to_repo_flow(ParamsPush(branch=params.branch, file_path=file_path))
+        logger.info(f"Pushing data to repo, using file path: {file_path}")
+        push_data_to_repo_flow(
+            params=ParamsPush(branch=params.branch, file_path=file_path)
+        )
 
 
 # state = flow.run(executor=LocalExecutor(), parameters={

@@ -20,9 +20,9 @@ pull:
     branch: main
 - prefect.deployments.steps.pip_install_requirements:
     id: install-deps-project
-    directory: "{{ clone-step.directory }}"
-    requirements_file: prefect2-flows/requirements.txt
-    stream_output: False
+    directory: '{{ clone-step.directory }}'
+    requirements_file: requirements.txt
+    stream_output: false
 
 
 # the deployments section allows you to provide configuration for deploying flows
@@ -54,4 +54,15 @@ deployments:
     infra_overrides:
     - env:
       - EXTRA_PIP_PACKAGES: GitPython requests
+  schedule:
+- name: default
+  version:
+  tags: []
+  description:
+  entrypoint: create_apis_graph_v2.py:create_apis_rdf_serialization
+  parameters: {}
+  work_pool:
+    name: intavia
+    work_queue_name:
+    job_variables: {}
   schedule:
