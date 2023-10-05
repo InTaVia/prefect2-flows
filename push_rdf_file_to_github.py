@@ -100,18 +100,14 @@ def push_data_to_repo_flow(params: Params):
     else:
         branch_name = params.branch_name
     commit_message = f"feat: {params.commit_message}"
-    res = (
-        push_data_to_repo(
-            params.file_path,
-            branch_name,
-            params.repo,
-            username,
-            password,
-            commit_message,
-            params.file_path_git,
-        )
-        .wait()
-        .result()
+    res = push_data_to_repo(
+        params.file_path,
+        branch_name,
+        params.repo,
+        username,
+        password,
+        commit_message,
+        params.file_path_git,
     )
     if res and params.auto_pr:
         create_pr(
