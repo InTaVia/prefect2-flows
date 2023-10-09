@@ -1117,7 +1117,7 @@ def gather_render_tasks(data, render_task):
 
 
 @flow
-def create_apis_rdf_serialization(params: Params):
+def create_apis_rdf_serialization_v3(params: Params):
     logger = get_run_logger()
     create_base_graph(params.base_uri_serialization)
     global base_uri
@@ -1150,13 +1150,14 @@ def create_apis_rdf_serialization(params: Params):
         entity_type="personinstitution",
         return_results_only=True,
     )
-    pers_pers_relations = request_from_api.map(
+    pers_pers_relationsA = request_from_api.map(
         mapped_id=pers_list_initial_ids,
         mapped_filter_key="related_personA",
         api_endpoint="relations",
         entity_type="personperson",
         return_results_only=True,
-    ) + request_from_api.map(
+    )
+    pers_pers_relationsB = request_from_api.map(
         mapped_id=pers_list_initial_ids,
         mapped_filter_key="related_personB",
         api_endpoint="relations",
@@ -1170,7 +1171,10 @@ def create_apis_rdf_serialization(params: Params):
         pers_inst_relations, render_personinstitution_relation
     )
     pers_pers_relations_render = gather_render_tasks(
-        pers_pers_relations, render_personperson_relation
+        pers_pers_relationsA, render_personperson_relation
+    )
+    pers_pers_relations_renderB = gather_render_tasks(
+        pers_pers_relationsB, render_personperson_relation
     )
     pers_inst_relations_vocab_render = gather_render_tasks(
         pers_inst_relations, render_personrole_from_relation
@@ -1198,9 +1202,9 @@ def create_apis_rdf_serialization(params: Params):
 
 
 if __name__ == "__main__":
-    create_apis_rdf_serialization(
+    create_apis_rdf_serialization_v3(
         params=Params(
-            filter_params={"first_name": "Franz"},
+            filter_params={"first_name": "Johann"},
             storage_path="/workspaces/prefect2-flows/data_serializations",
             branch="test",
         )
