@@ -1180,13 +1180,29 @@ def create_apis_rdf_serialization_v3(params: Params):
     pers_inst_relations_vocab_render = gather_render_tasks(
         pers_inst_relations, render_personrole_from_relation
     )
-    # for tasks_wait in (
-    #     pers_place_relations_render
-    #     + pers_inst_relations_render
-    #     + pers_pers_relations_render
-    #     + pers_inst_relations_vocab_render
-    # ):
-    #     tasks_wait.wait()
+    for tasks_wait in (
+        pers_place_relations_render
+        + pers_inst_relations_render
+        + pers_pers_relations_render
+        + pers_inst_relations_vocab_render
+    ):
+        tasks_wait.wait()
+    additional_places = request_from_api.map(
+        mapped_id=glob_list_entities["place"],
+        mapped_filter_key="id",
+        entity_type="place",
+        return_results_only=True,
+    )
+    additional_places_render = gather_render_tasks(additional_places, render_place)
+    additional_institutions = request_from_api.map(
+        mapped_id=glob_list_entities["institution"],
+        mapped_filter_key="id",
+        entity_type="institution",
+        return_results_only=True,
+    )
+    additional_institutions_render = gather_render_tasks(
+        additional_institutions, render_organization
+    )
     file_path = serialize_graph.submit(
         g,
         params.storage_path,
