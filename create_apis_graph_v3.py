@@ -1180,13 +1180,6 @@ def create_apis_rdf_serialization_v3(params: Params):
     pers_inst_relations_vocab_render = gather_render_tasks(
         pers_inst_relations, render_personrole_from_relation
     )
-    for tasks_wait in (
-        pers_place_relations_render
-        + pers_inst_relations_render
-        + pers_pers_relations_render
-        + pers_inst_relations_vocab_render
-    ):
-        tasks_wait.wait()
     additional_places = request_from_api.map(
         mapped_id=glob_list_entities["place"],
         mapped_filter_key="id",
