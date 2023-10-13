@@ -12,7 +12,7 @@ import requests
 from rdflib import Graph, Literal, RDF, Namespace, URIRef
 from rdflib.namespace import RDFS, XSD
 from typing import Any, Tuple
-from pydantic import BaseModel, DirectoryPath, Field, HttpUrl
+from pydantic import BaseModel, DirectoryPath, Extra, Field, HttpUrl
 from push_rdf_file_to_github import push_data_to_repo_flow
 from push_rdf_file_to_github import Params as ParamsPush
 from prefect.concurrency.sync import rate_limit
@@ -621,7 +621,8 @@ def render_person(person):
         else:
             g.add((prof_node, rdfs.subClassOf, bioc.Occupation))
     if person["gender"] is not None:
-        g.add((pers_uri, bioc.has_gender, bioc[person["gender"].capitalize()]))
+        if len(person["gender"]) > 0:
+            g.add((pers_uri, bioc.has_gender, bioc[person["gender"].capitalize()]))
     for uri in person["sameAs"]:
         g.add((pers_uri, owl.sameAs, URIRef(uri)))
     if "text" in person:
