@@ -14,6 +14,8 @@ httpx = "^0.25.0"
 gitpython = "^3.1.37"
 requests = "^2.31.0"
 rdflib = "^7.0.0"
+sparqlwrapper = "^2.0.0"
+deepl = "^1.15.0"
 
 [build-system]
 requires = ["poetry-core"]

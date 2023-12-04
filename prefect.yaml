@@ -66,3 +66,14 @@ deployments:
     work_queue_name:
     job_variables: {}
   schedule:
+- name: default
+  version:
+  tags: []
+  description:
+  entrypoint: create_apis_graph_v3:create_apis_rdf_serialization_v3
+  parameters: {}
+  work_pool:
+    name: intavia
+    work_queue_name:
+    job_variables: {}
+  schedule:
