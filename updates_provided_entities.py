@@ -375,7 +375,7 @@ def get_start_time():
     if hasattr(schedule_time, "scheduled_start_time"):
         return schedule_time.scheduled_start_time
     else:
-        datetime.now()
+        return datetime.datetime.now()
 
 
 def create_source_entities():
