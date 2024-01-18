@@ -6,7 +6,7 @@ from requests.auth import HTTPBasicAuth
 from rdflib import URIRef, Namespace, Graph, Literal, XSD
 from rdflib.namespace import OWL, RDF, RDFS
 import prefect
-from prefect import Flow, flow, get_run_logger, task, Parameter
+from prefect import Flow, flow, get_run_logger, task
 import rdflib
 import git
 import yaml
@@ -23,7 +23,7 @@ PROV = Namespace("http://www.w3.org/ns/prov#")
 PROV_TARGET_GRAPH = "http://www.intavia.org/graphs/provenance"
 
 
-@task(log_stdout=True)
+@task()
 def setup_sparql_connection(endpoint):
     sparql = SPARQLWrapper(endpoint)
     sparql.setHTTPAuth("BASIC")
@@ -368,7 +368,7 @@ def update_target_graph(endpoint, target_uri, data):
     return True
 
 
-@task(log_stdout=True)
+@task()
 def get_start_time():
     schedule_time = prefect.context.get("scheduled_start_time")
     if schedule_time:

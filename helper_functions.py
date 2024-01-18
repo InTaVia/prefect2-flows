@@ -1,6 +1,7 @@
 import os
 from typing import Any
 import git
+from prefect import task
 from pydantic import HttpUrl
 import rdflib
 import requests
@@ -62,6 +63,7 @@ def serialize_graph(g, storage_path, file_name, add_date_to_file):
     return f_path
 
 
+@task
 def create_conjunctive_graph_from_github_branch(
     gh_repo: HttpUrl,
     branch_name: str,
@@ -92,7 +94,7 @@ def create_conjunctive_graph_from_github_branch(
     return g
 
 
-create_conjunctive_graph_from_github_branch(
-    "https://github.com/InTaVia/source-data.git", "feat/update-apis-data-05-05-2023"
-)
-print("test")
+# create_conjunctive_graph_from_github_branch(
+#     "https://github.com/InTaVia/source-data.git", "feat/update-apis-data-05-05-2023"
+# )
+# print("test")
