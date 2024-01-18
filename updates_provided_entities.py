@@ -7,7 +7,7 @@ from rdflib import URIRef, Namespace, Graph, Literal, XSD
 from rdflib.namespace import OWL, RDF, RDFS
 import prefect
 from prefect import Flow, flow, get_run_logger, task
-from prefect.context import TaskRunContext
+from prefect.context import TaskRunContext, FlowRunContext
 import rdflib
 import git
 import yaml
@@ -371,7 +371,7 @@ def update_target_graph(endpoint, target_uri, data):
 
 @task()
 def get_start_time():
-    schedule_time = TaskRunContext.get().scheduled_start_time
+    schedule_time = FlowRunContext.get().scheduled_start_time
     if schedule_time:
         return schedule_time
     else:
