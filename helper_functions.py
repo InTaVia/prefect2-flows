@@ -6,6 +6,8 @@ import rdflib
 import requests
 from rdflib.plugins.stores.memory import Memory
 import yaml
+from pathlib import Path
+from datetime import datetime
 
 # res = requests.get(
 #     "https://github.com/InTaVia/source-data/raw/feat/update-apis-data-05-05-2023/datasets/apis_data.ttl"
@@ -34,6 +36,30 @@ import yaml
 #         """
 # )
 # print(res2)
+
+
+def serialize_graph(g, storage_path, file_name, add_date_to_file):
+    """serializes the RDFLib graph to a given destination
+
+    Args:
+        g (rflib): the graph to serialize
+        storage_path (str): path within the container to store the file to
+        named_graph (uri): optional named graph to serialize
+
+    Returns:
+        path: path of the stored file
+    """
+
+    Path(storage_path).mkdir(parents=True, exist_ok=True)
+    f_path = f"{storage_path}/{file_name}"
+    if add_date_to_file:
+        f_path += f"_{datetime.now().strftime('%d-%m-%Y')}"
+    f_path += ".ttl"
+    g.serialize(
+        destination=f_path,
+        format="turtle",
+    )
+    return f_path
 
 
 def create_conjunctive_graph_from_github_branch(

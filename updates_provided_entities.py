@@ -1,7 +1,7 @@
 from typing import List
 from venv import create
 from SPARQLWrapper import SPARQLWrapper, JSON
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, DirectoryPath, Field, HttpUrl
 from requests.auth import HTTPBasicAuth
 from rdflib import URIRef, Namespace, Graph, Literal, XSD
 from rdflib.namespace import OWL, RDF, RDFS
@@ -14,6 +14,8 @@ import requests
 import os
 from string import Template
 import datetime
+from helper_functions import serialize_graph
+from push_rdf_file_to_github import push_data_to_repo_flow, Params as ParamsPush
 
 IDM_PROV = Namespace("http://www.intavia.eu/idm-prov/")
 IDM_PREFECT = Namespace("http://www.intavia.eu/idm-prefect/")
@@ -459,14 +461,7 @@ def add_provenance(
     for target_entity in target_entities:
         g.add((activityURI, PROV.generated, target_entity))
 
-    auth = HTTPBasicAuth(os.environ.get("RDFDB_USER"), os.environ.get("RDFDB_PASSWORD"))
-    post_url = endpoint + "?context-uri=" + PROV_TARGET_GRAPH + ""
-    res2 = requests.post(
-        post_url,
-        headers={"Content-type": "text/turtle"},
-        data=g.serialize().encode("utf-8"),
-        auth=auth,
-    )
+    return g
 
 
 class Params(BaseModel):
@@ -506,12 +501,39 @@ class Params(BaseModel):
         "http://www.intavia.eu/idm-core/proxy_for"
     )
     target_graph: HttpUrl = Field("http://www.intavia.eu/graphs/provided_persons")
+    github_repo: HttpUrl | None = Field(
+        "https://github.com/InTaVia/source-data.git",
+        description="The GitHub repository to use as source. Set to None to use the SPARQL endpoint.",
+    )
+    github_branch_source: str = Field(
+        "main", description="The GitHub branch to use as source."
+    )
+    github_branch_target: str = Field(
+        ..., description="The GitHub branch to use as target."
+    )
+    github_branch_target_provenance: str = Field(
+        ..., description="The GitHub branch to use as target for the provenance graph."
+    )
+    use_github_as_target: bool = Field(
+        True, description="Whether to push the created graph to GitHub."
+    )
+    storage_path: DirectoryPath = Field(
+        "/archive/serializations/Provided_entities",
+        description="Path of the turtle file to use for serialization within the container excuting the flow",
+    )
 
 
 def create_provided_entities_flow(params: Params):
     start_time = get_start_time()
-    sparql = setup_sparql_connection(params.endpoint)
-    sparql2 = setup_sparql_connection(params.endpoint)
+    if params.github_repo is not None:
+        sparql = create_conjunctive_graph_from_github_branch(
+            params.github_repo,
+            params.github_branch_source,
+        )
+        sparql2 = sparql
+    else:
+        sparql = setup_sparql_connection(params.endpoint)
+        sparql2 = setup_sparql_connection(params.endpoint)
     id_graph = get_sameas_statements(
         sparql2,
         params.entity_source_uris,
@@ -546,19 +568,49 @@ def create_provided_entities_flow(params: Params):
         provided_entities,
         entity_proxies,
     )
-    res = update_target_graph(
-        params.endpoint, params.target_graph, provided_entities_graph
-    )
-    add_provenance(
+    if params.use_github_as_target:
+        file_path = serialize_graph(
+            provided_entities_graph.result(),
+            params.storage_path,
+            "provided_entities_graph",
+            True,
+        )
+        res = push_data_to_repo_flow(
+            params=ParamsPush(
+                branch_name=params.github_branch_target,
+                file_path=file_path,
+                file_path_git="datasets/provided_entities_graph.ttl",
+            )
+        )
+
+    else:
+        res = update_target_graph(
+            params.endpoint, params.target_graph, provided_entities_graph
+        )
+    prov_graph = add_provenance(
         res, start_time, create_source_entities, create_target_entities, params.endpoint
     )
+    if params.use_github_as_target:
+        file_path = serialize_graph(
+            prov_graph.result(), params.storage_path, "provenance_graph", True
+        )
+        res = push_data_to_repo_flow(
+            params=ParamsPush(
+                branch_name=params.github_branch_target_provenance,
+                file_path=file_path,
+                file_path_git="datasets/provenance_graph.ttl",
+            )
+        )
+
+    else:
+        update_target_graph(sparql, PROV_TARGET_GRAPH, prov_graph)
 
 
-flow.run_config = KubernetesRun(
-    env={"EXTRA_PIP_PACKAGES": "SPARQLWrapper rdflib requests"},
-    job_template_path="https://raw.githubusercontent.com/InTaVia/prefect-flows/master/intavia-job-template.yaml",
-)
-flow.storage = GitHub(repo="InTaVia/prefect-flows", path="update_provided_entities.py")
+# flow.run_config = KubernetesRun(
+#     env={"EXTRA_PIP_PACKAGES": "SPARQLWrapper rdflib requests"},
+#     job_template_path="https://raw.githubusercontent.com/InTaVia/prefect-flows/master/intavia-job-template.yaml",
+# )
+# flow.storage = GitHub(repo="InTaVia/prefect-flows", path="update_provided_entities.py")
 
 # default settings
 # flow.run()
