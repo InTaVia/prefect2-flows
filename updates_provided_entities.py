@@ -10,8 +10,6 @@ from prefect import Flow, get_run_logger, task, Parameter
 import rdflib
 import git
 import yaml
-from prefect.storage import GitHub
-from prefect.run_configs import KubernetesRun
 import requests
 import os
 from string import Template
@@ -504,7 +502,7 @@ class Params(BaseModel):
     provided_entity_type: HttpUrl = Field(
         "http://www.intavia.eu/idm-core/Provided_Person", description=""
     )
-    entity_profy_for_property: HttpUrl = Field(
+    entity_proxy_for_property: HttpUrl = Field(
         "http://www.intavia.eu/idm-core/proxy_for"
     )
     target_graph: HttpUrl = Field("http://www.intavia.eu/graphs/provided_persons")
