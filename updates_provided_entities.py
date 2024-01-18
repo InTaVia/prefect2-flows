@@ -371,7 +371,7 @@ def update_target_graph(endpoint, target_uri, data):
 
 @task()
 def get_start_time():
-    schedule_time = TaskRunContext.get("scheduled_start_time")
+    schedule_time = TaskRunContext.get().attr("scheduled_start_time", None)
     if schedule_time:
         return schedule_time
     else:
