@@ -371,9 +371,9 @@ def update_target_graph(endpoint, target_uri, data):
 
 @task()
 def get_start_time():
-    schedule_time = FlowRunContext.get().scheduled_start_time
-    if schedule_time:
-        return schedule_time
+    schedule_time = FlowRunContext.get()
+    if hasattr(schedule_time, "scheduled_start_time"):
+        return schedule_time.scheduled_start_time
     else:
         datetime.now()
 
