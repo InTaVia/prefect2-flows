@@ -6,7 +6,7 @@ from requests.auth import HTTPBasicAuth
 from rdflib import URIRef, Namespace, Graph, Literal, XSD
 from rdflib.namespace import OWL, RDF, RDFS
 import prefect
-from prefect import Flow, get_run_logger, task, Parameter
+from prefect import Flow, flow, get_run_logger, task, Parameter
 import rdflib
 import git
 import yaml
@@ -523,6 +523,7 @@ class Params(BaseModel):
     )
 
 
+@flow
 def create_provided_entities_flow(params: Params):
     start_time = get_start_time()
     if params.github_repo is not None:
