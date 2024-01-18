@@ -15,6 +15,7 @@ from typing import Any, Tuple
 from pydantic import BaseModel, DirectoryPath, Field, HttpUrl
 from push_rdf_file_to_github import push_data_to_repo_flow
 from push_rdf_file_to_github import Params as ParamsPush
+from prefect.concurrency.sync import rate_limit
 
 # from prefect.engine.signals import LOOP, SUCCESS, SKIP, RETRY, FAIL
 
@@ -125,7 +126,7 @@ def create_time_span_tripels(kind, event_node, obj, g):
     return g
 
 
-@task()
+@task(tags=["render-rdflib"])
 def render_personplace_relation(rel, g, base_uri):
     """renders personplace relation as RDF graph
 
@@ -171,10 +172,10 @@ def render_personplace_relation(rel, g, base_uri):
     ):
         place = rel["related_place"]["id"]
         glob_list_entities["places"].append(rel["related_place"]["id"])
-    return place
+    return g, place
 
 
-@task()
+@task(tags=["render-rdflib"])
 def render_personperson_relation(rel, g, base_uri):
     """renders personperson relation as RDF graph
 
@@ -211,7 +212,9 @@ def render_personperson_relation(rel, g, base_uri):
     else:
         g.add((pers_uri, bioc.has_person_relation, n_rel_type))
     g.add((n_rel_type, RDF.type, n_relationtype))
-    g.add((n_rel_type, RDFS.label, Literal(f"{rel['relation_type']['label']}")))
+    g.add(
+        (n_rel_type, RDFS.label, Literal(f"{rel['relation_type']['label']}", lang="de"))
+    )
     g.add(
         (
             idmapis[f"personproxy.{rel['related_personB']['id']}"],
@@ -276,10 +279,10 @@ def render_personperson_relation(rel, g, base_uri):
     logger.info(f" personpersonrelation serialized for: {rel['related_personA']['id']}")
     # return g
     # group which is part of this relation
-    return person
+    return g, person
 
 
-@task()
+@task(tags=["render-rdflib"])
 def render_personrole_from_relation(rel, g, base_uri):
     """renders personrole as RDF graph
 
@@ -302,7 +305,7 @@ def render_personrole_from_relation(rel, g, base_uri):
                     second_entity = k.split("_")[1]
     else:
         logger.info("personrole already in graph")
-        return None
+        return g, None
     label = "label"
     if "label" not in role:
         label = "name"
@@ -317,13 +320,16 @@ def render_personrole_from_relation(rel, g, base_uri):
         else:
             p_id = role["parent_class"]["id"]
         if (idmapis[f"personrole.{p_id}"], None, None) not in g:
-            return f"{base_uri}/apis/api/vocabularies/person{second_entity}relation/{role['parent_id']}"
+            return (
+                g,
+                f"{base_uri}/apis/api/vocabularies/person{second_entity}relation/{role['parent_id']}",
+            )
     else:
         g.add((n_role, RDF.type, bioc.Actor_Role))
-    return None
+    return g, None
 
 
-@task
+@task(tags=["render-rdflib"])
 def render_personrole(role, g, base_uri):
     logger = get_run_logger()
     if role is None:
@@ -331,7 +337,7 @@ def render_personrole(role, g, base_uri):
         return None
     if (idmapis[f"personrole.{role['id']}"], None, None) in g:
         logger.info("personrole already in graph")
-        return None
+        return g, None
     n_role = idmapis[f"personrole.{role['id']}"]
     g.add((n_role, RDFS.label, Literal(f"{role['name']}", lang="de")))
     if role["parent_class"] is not None:
@@ -340,15 +346,16 @@ def render_personrole(role, g, base_uri):
             None,
             None,
         ) not in g:
-            logger.info("parent role not in graph")
-            return role["parent_class"]["id"]
+            logger.warning(f"parent role not in graph")
+            return g, role["parent_class"]["url"]
     else:
         g.add((n_role, RDF.type, bioc.Actor_Role))
-        return None
+        return g, None
 
 
-@task
-def render_personinstitution_relation(rel: dict, g: Graph) -> list:
+@task(tags=["render-rdflib"])
+def render_personinstitution_relation(rel: dict) -> Tuple[Graph, Any]:
+    global g
     logger = get_run_logger()
     pers_uri = idmapis[f"personproxy.{rel['related_person']['id']}"]
     inst = None
@@ -373,7 +380,7 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
                 idmapis[f"grouprole.{rel['relation_type']['parent_id']}"],
             )
         )
-    g.add((n_rel_type, rdfs.label, Literal(rel["relation_type"]["label"])))
+    g.add((n_rel_type, rdfs.label, Literal(rel["relation_type"]["label"], lang="de")))
     # add label to relationtype
     g.add(
         (
@@ -399,7 +406,8 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
             idmapis[f"career.{rel['id']}"],
             rdfs.label,
             Literal(
-                f"{rel['related_person']['label']} {rel['relation_type']['label']} {rel['related_institution']['label']}"
+                f"{rel['related_person']['label']} {rel['relation_type']['label']} {rel['related_institution']['label']}",
+                lang="de",
             ),
         )
     )
@@ -507,10 +515,10 @@ def render_personinstitution_relation(rel: dict, g: Graph) -> list:
             rel['end_date']+'T23:59:59', datatype=XSD.dateTime))))
         g.add((URIRef(f"{idmapis}career/timespan/{rel['id']}"), rdfs.label, Literal(
             'time-span end:' + rel['end_date_written']))) """
-    return inst
+    return g, inst
 
 
-@task()
+@task(tags=["render-rdflib"])
 def render_person(person, g, base_uri):
     """renders person object as RDF graph
 
@@ -524,7 +532,13 @@ def render_person(person, g, base_uri):
         return g
     g.add((pers_uri, RDF.type, crm.E21_Person))
     g.add((pers_uri, RDF.type, idmcore.Person_Proxy))
-    g.add((pers_uri, RDFS.label, Literal(f"{person['first_name']} {person['name']}")))
+    g.add(
+        (
+            pers_uri,
+            RDFS.label,
+            Literal(f"{person['first_name']} {person['name']}", lang="de"),
+        )
+    )
     # define that individual in APIS named graph and APIS entity are the same
     g.add((pers_uri, owl.sameAs, URIRef(f"{base_uri}/entity/{person['id']}")))
     # add sameAs
@@ -536,7 +550,8 @@ def render_person(person, g, base_uri):
             node_main_appellation,
             RDFS.label,
             Literal(
-                f"{person['name'] if person['name'] is not None else '-'}, {person['first_name'] if person['first_name'] is not None else '-'}"
+                f"{person['name'] if person['name'] is not None else '-'}, {person['first_name'] if person['first_name'] is not None else '-'}",
+                lang="de",
             ),
         )
     )
@@ -546,7 +561,13 @@ def render_person(person, g, base_uri):
         g.add(
             (node_first_name_appellation, RDF.type, crm.E33_E41_Linguistic_Appellation)
         )
-        g.add((node_first_name_appellation, RDFS.label, Literal(person["first_name"])))
+        g.add(
+            (
+                node_first_name_appellation,
+                RDFS.label,
+                Literal(person["first_name"], lang="de"),
+            )
+        )
         g.add(
             (node_main_appellation, crm.P148_has_component, node_first_name_appellation)
         )
@@ -555,7 +576,9 @@ def render_person(person, g, base_uri):
         g.add(
             (node_last_name_appellation, RDF.type, crm.E33_E41_Linguistic_Appellation)
         )
-        g.add((node_last_name_appellation, RDFS.label, Literal(person["name"])))
+        g.add(
+            (node_last_name_appellation, RDFS.label, Literal(person["name"], lang="de"))
+        )
         g.add(
             (node_main_appellation, crm.P148_has_component, node_last_name_appellation)
         )
@@ -593,7 +616,7 @@ def render_person(person, g, base_uri):
             (
                 node_death_event,
                 RDFS.label,
-                Literal(f"Death of {person['first_name']} {person['name']}"),
+                Literal(f"Death of {person['first_name']} {person['name']}", lang="de"),
             )
         )
         g.add((node_death_event, crm["P4_has_time-span"], node_time_span))
@@ -602,7 +625,7 @@ def render_person(person, g, base_uri):
     for prof in person["profession"]:
         prof_node = idmapis[f"occupation.{prof['id']}"]
         g.add((pers_uri, bioc.has_occupation, prof_node))
-        g.add((prof_node, rdfs.label, Literal(prof["label"])))
+        g.add((prof_node, rdfs.label, Literal(prof["label"], lang="de")))
         if prof["parent_id"] is not None:
             parent_prof_node = idmapis[f"occupation.{prof['parent_id']}"]
             g.add((prof_node, rdfs.subClassOf, parent_prof_node))
@@ -677,7 +700,7 @@ def render_organizationplace_relation(rel, g):
             idmapis[f"place.{rel['related_place']['id']}"],
         )
     )
-    return place
+    return g, place
 
 
 @task()
@@ -702,7 +725,7 @@ def render_organization(organization, g, base_uri):
         g.add((node_org, owl.sameAs, URIRef(uri)))
     # defines group as the same group in the APIS dataset
     g.add((node_org, crm.P1_is_identified_by, appelation_org))
-    g.add((appelation_org, rdfs.label, Literal(organization["name"])))
+    g.add((appelation_org, rdfs.label, Literal(organization["name"], lang="de")))
     g.add((appelation_org, RDF.type, crm.E33_E41_Linguistic_Appellation))
     # add group appellation and define it as linguistic appellation
     if organization["start_date_written"] is not None:
@@ -779,19 +802,28 @@ def render_event(event, event_type, node_event, g):
     g.add((node_event_role, bioc.inheres_in, node_pers))
     g.add((node_event_role, RDF.type, node_roletype))
     g.add((node_roletype, rdfs.subClassOf, bioc.Event_Role))
-    g.add((node_roletype, RDFS.label, Literal(event["relation_type"]["label"])))
+    g.add(
+        (node_roletype, RDFS.label, Literal(event["relation_type"]["label"], lang="de"))
+    )
     # suggestion to add specific event role
     g.add((node_event, bioc.had_participant_in_role, node_event_role))
     # connect event and event role
     g.add((node_event, RDF.type, crm.E5_Event))
     # define crm classification
-    g.add((node_event_role, RDFS.label, Literal(event["relation_type"]["label"])))
+    g.add(
+        (
+            node_event_role,
+            RDFS.label,
+            Literal(event["relation_type"]["label"], lang="de"),
+        )
+    )
     g.add(
         (
             node_event,
             RDFS.label,
             Literal(
-                f"{event['related_person']['label']} {event['relation_type']['label']} {event['related_place']['label']}"
+                f"{event['related_person']['label']} {event['relation_type']['label']} {event['related_place']['label']}",
+                lang="de",
             ),
         )
     )
@@ -819,7 +851,7 @@ def render_place(place, g, base_uri):
     if place is None:
         return g
     node_place = idmapis[f"place.{place['id']}"]
-    g.add((node_place, RDFS.label, Literal(place["name"])))
+    g.add((node_place, RDFS.label, Literal(place["name"], lang="de")))
     node_appelation = idmapis[f"placeappellation.{place['id']}"]
     node_plc_identifier = idmapis[f"placeidentifier.{place['id']}"]
 
@@ -829,7 +861,7 @@ def render_place(place, g, base_uri):
     # add appellation to place
     g.add((node_appelation, RDF.type, crm.E33_E41_Linguistic_Appellation))
     # define appellation as linguistic appellation
-    g.add((node_appelation, RDFS.label, Literal(place["name"])))
+    g.add((node_appelation, RDFS.label, Literal(place["name"], lang="de")))
     # add label to appellation
     g.add((node_place, owl.sameAs, URIRef(f"{base_uri}/entity/{place['id']}")))
     for uri in place["sameAs"]:
@@ -869,7 +901,7 @@ def render_place(place, g, base_uri):
     return g
 
 
-@task(retries=2, retry_delay_seconds=120)
+@task(retries=3, retry_delay_seconds=30, timeout_seconds=60)
 def get_entities_relations_list(
     url: HttpUrl,
     filter_params: dict | None = None,
@@ -879,6 +911,7 @@ def get_entities_relations_list(
     mapped_filter_key: str | None = None,
     return_results_only: bool = False,
 ):
+    rate_limit("rate-limited-apis-api")
     logger = get_run_logger()
     logger.info("retrieving list endpoint")
     if mapped_id is not None and mapped_filter_key is not None:
@@ -900,13 +933,14 @@ def get_entities_relations_list(
         return res.json()
 
 
-@task(retries=2, retry_delay_seconds=60)
+@task(retries=3, retry_delay_seconds=30, timeout_seconds=60)
 def get_entity(entity_id=None, entity_type=None, base_uri=None, url=None):
     """gets organization object from API
 
     Args:
         organization_id (_type_): _description_
     """
+    rate_limit("rate-limited-apis-api")
     logger = get_run_logger()
     if entity_id is None:
         logger.warning("Entity is None, skipping")
@@ -1145,6 +1179,14 @@ class Params(BaseModel):
 
 
 @flow
+def gather_render_tasks(data, render_task):
+    res = []
+    for item in data:
+        res.append(render_task.map(item))
+    return res
+
+
+@flow
 def create_apis_rdf_serialization(params: Params):
     logger = get_run_logger()
     g = create_base_graph(params.base_uri_serialization)
@@ -1156,10 +1198,11 @@ def create_apis_rdf_serialization(params: Params):
     while res_persons["next"] is not None:
         res_persons = get_entities_relations_list(url=res_persons["next"])
         persons.extend(res_persons["results"])
-    person_return = render_person.map(
-        persons, unmapped(g), unmapped(params.base_uri_serialization)
-    )
-    pers_id_list = [p["id"] for p in persons]
+    # person_return = render_person.map(persons, unmapped(params.base_uri_serialization))
+    pers_id_list = []
+    for p in persons:
+        g = render_person(p, g, params.base_uri_serialization)
+        pers_id_list.append(p["id"])
     pers_inst = []
     pers_inst_res = get_entities_relations_list.map(
         url=params.endpoint,
@@ -1208,96 +1251,35 @@ def create_apis_rdf_serialization(params: Params):
     #     kind=unmapped("personplace"),
     #     related_entity_type=unmapped("person"),
     # )
-    places_data_persons = render_personplace_relation.map(
-        list(
-            chain.from_iterable(
-                f.result() for f in pers_place_res if not f.wait().is_failed()
-            )
-        ),
-        unmapped(g),
-        unmapped(params.base_uri_serialization),
+    insts = gather_render_tasks(pers_inst_res, render_personinstitution_relation)
+    places_data_persons = gather_render_tasks(
+        pers_place_res, render_personplace_relation
     )
-    places_data_persons_filtered = list(
-        set([p.result() for p in places_data_persons if not p.wait().is_failed()])
-    )
-    # pers_pers = get_entity_relations.map(
-    #     unmapped(params.endpoint),
-    #     persons,
-    #     kind=unmapped("personperson"),
-    #     related_entity_type=unmapped("person"),
-    # )
-    additional_persons = render_personperson_relation.map(
-        list(
-            chain.from_iterable(
-                f.result()
-                for f in pers_pers_res
-                if not f.wait().is_failed() and f.result() is not None
-            )
-        ),
-        unmapped(g),
-        unmapped(params.base_uri_serialization),
+    additional_persons = gather_render_tasks(
+        pers_pers_res, render_personperson_relation
     )
     additional_persons_filtered = list(
-        set(
-            [
-                p.result()
-                for p in additional_persons
-                if not p.wait().is_failed() and p.result() is not None
-            ]
-        )
+        set([p for p in additional_persons if p is not None])
     )
-
     additional_persons_data = get_entity.map(
         additional_persons_filtered, unmapped("person"), unmapped(params.endpoint)
     )
-    additional_persons_return = render_person.map(
-        additional_persons_data, unmapped(g), unmapped(params.base_uri_serialization)
-    )
-    insts = render_personinstitution_relation.map(
-        list(
-            chain.from_iterable(
-                f.result()
-                for f in pers_inst_res
-                if not f.wait().is_failed() and f.result() is not None
-            )
-        ),
-        unmapped(g),
-    )
-    outp_persrole = render_personrole_from_relation.map(
-        list(
-            chain.from_iterable(
-                f.result()
-                for f in pers_inst_res
-                if not f.wait().is_failed() and f.result() is not None
-            )
-        ),
-        unmapped(g),
-        unmapped(params.base_uri_serialization),
-    )
-    outp_persrole_filtered = [
-        p.result()
-        for p in outp_persrole
-        if not p.wait().is_failed() and p.result() is not None
-    ]
+    for p in additional_persons_data:
+        g = render_person(p, g, params.base_uri_serialization)
+
+    outp_persrole = gather_render_tasks(pers_inst_res, render_personrole)
+    outp_persrole_filtered = [p for p in outp_persrole if p is not None]
     additional_roles_data = get_entity.map(url=outp_persrole_filtered)
-    additional_roles_return = render_personrole.map(
-        additional_roles_data, unmapped(g), unmapped(params.base_uri_serialization)
-    )
-    insts_filtered = list(
-        set(
-            [
-                p.result()
-                for p in insts
-                if not p.wait().is_failed() and p.result() is not None
-            ]
-        )
-    )
+    for pers_role in additional_roles_data:
+        g, parent = render_personrole(pers_role, g, params.base_uri_serialization)
+        while parent is not None:
+            parent_data = get_entity.map(url=parent)
+            g, parent = render_personrole(parent_data, g, params.base_uri_serialization)
+    insts_filtered = list(set([p for p in insts]))
     insts_data = get_entity.map(
         insts_filtered, unmapped("institution"), unmapped(params.endpoint)
     )
-    orga_return = render_organization.map(
-        insts_data, unmapped(g), unmapped(params.base_uri_serialization)
-    )
+    inst_out = gather_render_tasks(insts_data, render_institution)
     inst_rel_data = get_entities_relations_list.map(
         url=params.endpoint,
         filter_params=unmapped({"limit": 1000}),
@@ -1307,25 +1289,20 @@ def create_apis_rdf_serialization(params: Params):
         mapped_filter_key="related_institution",
         return_results_only=True,
     )
-    places_data_institutions = render_organizationplace_relation.map(
-        list(
-            chain.from_iterable(
-                f.result()
-                for f in inst_rel_data
-                if not f.wait().is_failed() and f.result() is not None
-            )
-        ),
-        unmapped(g),
+    places_data_institutions = gather_render_tasks(
+        inst_rel_data, render_organizationplace_relation
     )
-    places_data_institutions_filtered = list(
-        set(
-            [
-                p.result()
-                for p in places_data_institutions
-                if not p.wait().is_failed() and p.result() is not None
-            ]
+    for inst_rel in list(
+        chain.from_iterable(
+            f.result() for f in inst_rel_data if not f.wait().is_failed()
         )
-    )
+    ):
+        g, place = render_organizationplace_relation(
+            inst_rel, g, params.base_uri_serialization
+        )
+        if place is not None:
+            places_data_institutions.append(place)
+    places_data_institutions_filtered = list(set([p for p in places_data_institutions]))
     places_data_fin = get_entity.map(
         list(set(places_data_institutions + places_data_persons)),
         unmapped("place"),
@@ -1336,14 +1313,12 @@ def create_apis_rdf_serialization(params: Params):
         for p in places_data_fin
         if not p.wait().is_failed() and p.result() is not None
     ]
-    places_out = render_place.map(
-        places_data_fin_filtered, unmapped(g), unmapped(params.base_uri_serialization)
-    )
+    for place in places_data_fin_filtered:
+        g = render_place(place, g, params.base_uri_serialization)
     file_path = serialize_graph.submit(
         g,
         params.storage_path,
         params.add_date_to_file,
-        wait_for=[places_out],
     )
     if params.upload_data:
         upload_data(file_path, params.named_graph, wait_for=[file_path])
@@ -1367,7 +1342,8 @@ def create_apis_rdf_serialization(params: Params):
 if __name__ == "__main__":
     create_apis_rdf_serialization(
         params=Params(
-            filter_params={"name": "Streit"},
+            filter_params={"name": "Tesla"},
             storage_path="/workspaces/prefect2-flows/data_serializations",
+            branch="test",
         )
     )
