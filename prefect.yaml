@@ -77,3 +77,14 @@ deployments:
     work_queue_name:
     job_variables: {}
   schedule:
+- name: default
+  version:
+  tags: []
+  description:
+  entrypoint: updates_provided_entities.py:create_provided_entities_flow
+  parameters: {}
+  work_pool:
+    name: intavia
+    work_queue_name:
+    job_variables: {}
+  schedule:
