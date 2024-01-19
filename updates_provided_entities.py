@@ -404,8 +404,8 @@ def create_source_entities():
 
 def create_target_entities():
     entities = []
-    flow_run_id = prefect.context.flow_run_id
-    params = prefect.context.parameters
+    flow_run_id = prefect.runtime.deployment.flow_run_id
+    params = prefect.runtime.deployment.parameters
     g = Graph()
 
     target_graph = URIRef(IDM_PROV[flow_run_id + "/target"])
@@ -423,10 +423,10 @@ def add_provenance(
     # return
     logger = get_run_logger()
 
-    flow_name = prefect.context.flow_name
-    flow_id = prefect.context.flow_id
-    flow_run_id = prefect.context.flow_run_id
-    flow_run_version = prefect.context.get("flow_run_version", "not-available")
+    flow_name = prefect.runtime.flow_name
+    flow_id = prefect.runtime.id
+    flow_run_id = prefect.runtime.deployment.flow_run_id
+    flow_run_version = prefect.runtime.deployment.get("version", "not-available")
     end_time = datetime.datetime.now()
 
     g = Graph()
@@ -580,6 +580,9 @@ def create_provided_entities_flow(params: Params):
         res = push_data_to_repo_flow(
             params=ParamsPush(
                 branch_name=params.github_branch_target,
+                branch_name_add_date=True,
+                file_path_git="datasets/provided_entities_graph.ttl",
+                commit_message="Updates provided entities graph",
                 file_path=file_path,
                 file_path_git="datasets/provided_entities_graph.ttl",
             )
