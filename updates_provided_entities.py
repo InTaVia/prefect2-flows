@@ -572,7 +572,7 @@ def create_provided_entities_flow(params: Params):
     )
     if params.use_github_as_target:
         file_path = serialize_graph(
-            provided_entities_graph.result(),
+            provided_entities_graph,
             params.storage_path,
             "provided_entities_graph",
             True,
@@ -594,7 +594,7 @@ def create_provided_entities_flow(params: Params):
     )
     if params.use_github_as_target:
         file_path = serialize_graph(
-            prov_graph.result(), params.storage_path, "provenance_graph", True
+            prov_graph, params.storage_path, "provenance_graph", True
         )
         res = push_data_to_repo_flow(
             params=ParamsPush(
