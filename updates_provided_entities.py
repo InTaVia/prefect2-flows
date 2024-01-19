@@ -476,7 +476,7 @@ class Params(BaseModel):
         "https://triplestore.acdh-dev.oeaw.ac.at/intavia/sparql",
         description="The SPARQL endpoint to query and update. Not needed if GitHub is used.",
     )
-    entity_source_uris: List[HttpUrl] = Field(
+    entity_source_uris: List[str] = Field(
         [
             "http://apis.acdh.oeaw.ac.at/data/v5",
             "http://ldf.fi/nbf/data",
