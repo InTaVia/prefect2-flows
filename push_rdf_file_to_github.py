@@ -22,7 +22,15 @@ def create_pr(title, branch, token, repo, base):
 
 @task(tags=["github"])
 def push_data_to_repo(
-    file_path, branch, repo, username, password, commit_message, file_path_git
+    file_path,
+    branch,
+    repo,
+    username,
+    password,
+    commit_message,
+    file_path_git,
+    local_folder,
+    force,
 ):
     """creates a feature branch adds the created graph file and pushes the branch
 
@@ -32,7 +40,9 @@ def push_data_to_repo(
     """
 
     logger = get_run_logger()
-    full_local_path = os.path.join(os.getcwd(), "source-data")
+    full_local_path = os.path.join(os.getcwd(), local_folder)
+    if os.path.exists(full_local_path) and force:
+        shutil.rmtree(full_local_path)
     remote = f"https://{username}:{password}@github.com/{repo}.git"
     logger.info(f"Cloning {remote} to {full_local_path}")
     repo = git.Repo.clone_from(remote, full_local_path)
@@ -89,6 +99,13 @@ class Params(BaseModel):
         "main",
         description="Base branch for creating the PR against",
     )
+    local_folder: str = Field(
+        "source-data", description="Local folder to clone the repo to"
+    )
+    force: bool = Field(
+        False,
+        description="Whether to force the deletion of the local folder if it exists",
+    )
 
 
 @flow()
@@ -108,6 +125,8 @@ def push_data_to_repo_flow(params: Params):
         password,
         commit_message,
         params.file_path_git,
+        params.local_folder,
+        params.force,
     )
     if res and params.auto_pr:
         create_pr(
