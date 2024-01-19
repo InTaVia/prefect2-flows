@@ -103,7 +103,7 @@ class Params(BaseModel):
         "source-data", description="Local folder to clone the repo to"
     )
     force: bool = Field(
-        False,
+        True,
         description="Whether to force the deletion of the local folder if it exists",
     )
 
