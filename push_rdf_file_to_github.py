@@ -82,7 +82,6 @@ class Params(BaseModel):
     file_path: FilePath = Field(..., description="Path of the file to ingest")
     file_path_git: str = Field(
         "datasets/apis_data.ttl",
-        alias="File Path Git",
         description="Path of the file to use within the Git repo",
     )
     named_graphs_used: list[HttpUrl] = Field(
