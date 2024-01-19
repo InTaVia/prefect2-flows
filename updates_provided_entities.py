@@ -601,8 +601,10 @@ def create_provided_entities_flow(params: Params):
         res = push_data_to_repo_flow(
             params=ParamsPush(
                 branch_name=params.github_branch_target_provenance,
+                branch_name_add_date=True,
                 file_path=file_path,
                 file_path_git="datasets/provenance_graph.ttl",
+                commit_message="Updates provenance graph",
             )
         )
 
