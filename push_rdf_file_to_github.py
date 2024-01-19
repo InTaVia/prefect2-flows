@@ -113,7 +113,9 @@ def push_data_to_repo_flow(params: Params):
     username = Secret.load(params.username_secret).get()
     password = Secret.load(params.password_secret).get()
     if params.branch_name_add_date:
-        branch_name = f"{params.branch_name}-{datetime.now().strftime('%d-%m-%Y')}"
+        branch_name = (
+            f"{params.branch_name}-{datetime.datetime.now().strftime('%d-%m-%Y')}"
+        )
     else:
         branch_name = params.branch_name
     commit_message = f"feat: {params.commit_message}"
