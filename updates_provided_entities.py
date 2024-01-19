@@ -381,7 +381,7 @@ def get_start_time():
 def create_source_entities():
     entities = []
     flow_run_id = prefect.runtime.flow_run.id
-    params = prefect.runtime.flow_run.parameters
+    params = prefect.runtime.flow_run.parameters["params"]
     g = Graph()
     for index, source_graph in enumerate(params.entity_source_uris):
         source_entity = URIRef(IDM_PROV[flow_run_id + "/source/" + str(index)])
@@ -391,12 +391,10 @@ def create_source_entities():
         entities.append(source_entity)
 
     # entity_enriched_uris
-    if params["entity_enriched_uris"] != "":
+    if params.entity_enriched_uris != "":
         id_source = URIRef(IDM_PROV[flow_run_id + "/source/id_source"])
         g.add((id_source, RDF.type, PROV.Entity))
-        g.add(
-            (id_source, IDM_PROV.source_graph, URIRef(params["entity_enriched_uris"]))
-        )
+        g.add((id_source, IDM_PROV.source_graph, URIRef(params.entity_enriched_uris)))
         entities.append(source_entity)
 
     return entities, g
@@ -404,13 +402,13 @@ def create_source_entities():
 
 def create_target_entities():
     entities = []
-    flow_run_id = prefect.runtime.deployment.flow_run_id
-    params = prefect.runtime.deployment.parameters
+    flow_run_id = prefect.runtime.flow_run.id
+    params = prefect.runtime.flow_run.parameters["params"]
     g = Graph()
 
     target_graph = URIRef(IDM_PROV[flow_run_id + "/target"])
     g.add((target_graph, RDF.type, PROV.Entity))
-    g.add((target_graph, IDM_PROV.target_graph, URIRef(params["target_graph"])))
+    g.add((target_graph, IDM_PROV.target_graph, URIRef(params.target_graph)))
     entities.append(target_graph)
 
     return entities, g
@@ -616,6 +614,15 @@ def create_provided_entities_flow(params: Params):
         update_target_graph(sparql, PROV_TARGET_GRAPH, prov_graph)
 
 
+if __name__ == "__main__":
+    create_provided_entities_flow(
+        params=Params(
+            github_branch_target="ms/test-prodided-entities",
+            use_github_as_target=True,
+            github_branch_target_provenance="ms/provenance_graph",
+            storage_path="/workspaces/prefect2-flows/archive/serializations/Provided_entities",
+        )
+    )
 # flow.run_config = KubernetesRun(
 #     env={"EXTRA_PIP_PACKAGES": "SPARQLWrapper rdflib requests"},
 #     job_template_path="https://raw.githubusercontent.com/InTaVia/prefect-flows/master/intavia-job-template.yaml",
