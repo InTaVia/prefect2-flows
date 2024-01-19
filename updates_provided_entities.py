@@ -380,8 +380,8 @@ def get_start_time():
 
 def create_source_entities():
     entities = []
-    flow_run_id = prefect.context.flow_run_id
-    params = prefect.context.parameters
+    flow_run_id = prefect.runtime.flow_run.id
+    params = prefect.runtime.flow_run.parameters
     g = Graph()
     for index, source_graph in enumerate(params["entity_source_uris"]):
         source_entity = URIRef(IDM_PROV[flow_run_id + "/source/" + str(index)])
