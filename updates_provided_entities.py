@@ -428,7 +428,7 @@ def add_provenance(
     flow_run_id = prefect.runtime.flow_run.id
     flow_run_version = (
         prefect.runtime.deployment.version
-        if len(prefect.runtime.deployment.version) > 0
+        if prefect.runtime.deployment.version is not None
         else "not available"
     )
     end_time = datetime.datetime.now()
