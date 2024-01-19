@@ -382,7 +382,7 @@ def get_start_time():
         return datetime.datetime.now()
 
 
-def create_source_entities():
+def create_source_entities(source_graphs):
     entities = []
     flow_run_id = prefect.runtime.flow_run.id
     params = prefect.runtime.flow_run.parameters["params"]
@@ -404,7 +404,7 @@ def create_source_entities():
     return entities, g
 
 
-def create_target_entities():
+def create_target_entities(target_graph):
     entities = []
     flow_run_id = prefect.runtime.flow_run.id
     params = prefect.runtime.flow_run.parameters["params"]
@@ -598,22 +598,22 @@ def create_provided_entities_flow(params: Params):
         res = update_target_graph(
             params.endpoint, params.target_graph, provided_entities_graph
         )
-    prov_graph = add_provenance(
-        res, start_time, create_source_entities, create_target_entities, params.endpoint
-    )
-    if params.use_github_as_target:
-        file_path = serialize_graph(
-            prov_graph, params.storage_path, "provenance_graph", True
-        )
-        res = push_data_to_repo_flow(
-            params=ParamsPush(
-                branch_name=params.github_branch_target_provenance,
-                branch_name_add_date=True,
-                file_path=file_path,
-                file_path_git="datasets/provenance_graph.ttl",
-                commit_message="Updates provenance graph",
-            )
-        )
+    # prov_graph = add_provenance(
+    #     res, start_time, create_source_entities, create_target_entities, params.endpoint
+    # )
+    # if params.use_github_as_target:
+    #     file_path = serialize_graph(
+    #         prov_graph, params.storage_path, "provenance_graph", True
+    #     )
+    #     res = push_data_to_repo_flow(
+    #         params=ParamsPush(
+    #             branch_name=params.github_branch_target_provenance,
+    #             branch_name_add_date=True,
+    #             file_path=file_path,
+    #             file_path_git="datasets/provenance_graph.ttl",
+    #             commit_message="Updates provenance graph",
+    #         )
+    #     )
 
     else:
         update_target_graph(sparql, PROV_TARGET_GRAPH, prov_graph)
