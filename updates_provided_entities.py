@@ -584,7 +584,6 @@ def create_provided_entities_flow(params: Params):
                 file_path_git="datasets/provided_entities_graph.ttl",
                 commit_message="Updates provided entities graph",
                 file_path=file_path,
-                file_path_git="datasets/provided_entities_graph.ttl",
             )
         )
 
