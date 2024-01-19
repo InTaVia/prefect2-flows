@@ -483,7 +483,7 @@ class Params(BaseModel):
             "http://data.biographynet.nl",
             "http://www.intavia.eu/sbi",
         ],
-        description="The datasets to query for source URIs.",
+        description="The datasets to query for source URIs. Specify dataset names if GitHub is used.",
     )
     entity_source_type: HttpUrl = Field(
         "http://www.cidoc-crm.org/cidoc-crm/E21_Person",
@@ -537,6 +537,7 @@ def create_provided_entities_flow(params: Params):
         sparql = create_conjunctive_graph_from_github_branch(
             params.github_repo,
             params.github_branch_source,
+            params.entity_source_uris,
         )
         sparql2 = sparql
     else:
