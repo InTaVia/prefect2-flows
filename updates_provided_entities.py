@@ -423,9 +423,9 @@ def add_provenance(
     # return
     logger = get_run_logger()
 
-    flow_name = prefect.runtime.flow_name
-    flow_id = prefect.runtime.id
-    flow_run_id = prefect.runtime.deployment.flow_run_id
+    flow_name = prefect.runtime.flow_run.flow_name
+    # flow_id = prefect.runtime.flow_runid
+    flow_run_id = prefect.runtime.flow_run.id
     flow_run_version = prefect.runtime.deployment.get("version", "not-available")
     end_time = datetime.datetime.now()
 
@@ -434,7 +434,7 @@ def add_provenance(
     activityURI = URIRef(IDM_PROV["activity/" + flow_run_id])
     g.add((activityURI, RDF.type, PROV.Activity))
     g.add((activityURI, IDM_PREFECT.flow_name, Literal(flow_name)))
-    g.add((activityURI, IDM_PREFECT.flow_id, Literal(flow_id)))
+    # g.add((activityURI, IDM_PREFECT.flow_id, Literal(flow_id)))
     g.add((activityURI, IDM_PREFECT.flow_run_version, Literal(flow_run_version)))
     g.add(
         (
