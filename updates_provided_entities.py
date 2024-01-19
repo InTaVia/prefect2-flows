@@ -615,8 +615,8 @@ def create_provided_entities_flow(params: Params):
     #         )
     #     )
 
-    else:
-        update_target_graph(sparql, PROV_TARGET_GRAPH, prov_graph)
+    # else:
+    #     update_target_graph(sparql, PROV_TARGET_GRAPH, prov_graph)
 
 
 if __name__ == "__main__":
