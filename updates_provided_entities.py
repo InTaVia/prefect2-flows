@@ -302,11 +302,11 @@ def create_provided_entities_graph(
         added = False
         for extID in id_graph.objects(entityProxy, OWL.sameAs):
             for otherProxy in id_graph.subjects(OWL.sameAs, extID):
-                if not otherProxy in addedEntityProxies:
+                if otherProxy not in addedEntityProxies:
                     g.add((otherProxy, entityProxyForPropertyURI, providedEntityURI))
                     addedEntityProxies.add(otherProxy)
                     added = True
-        if not entityProxy in addedEntityProxies:
+        if entityProxy not in addedEntityProxies:
             g.add((entityProxy, entityProxyForPropertyURI, providedEntityURI))
             addedEntityProxies.add(entityProxy)
             added = True
