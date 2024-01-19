@@ -322,7 +322,9 @@ def create_provided_entities_graph(
         g.add((providedEntityURI, RDF.type, providedEntityTypeURI))
         for entityProxy in entityProxies:
             entityProxyURI = URIRef(entityProxy)
-            g.add((entityProxyURI, entityProxyForPropertyURI, providedEntityURI))
+            if entityProxyURI not in addedEntityProxies:
+                g.add((entityProxyURI, entityProxyForPropertyURI, providedEntityURI))
+                addedEntityProxies.add(entityProxyURI)
         providedEntityCount = providedEntityCount + 1
 
     logger.info(
@@ -332,11 +334,13 @@ def create_provided_entities_graph(
 
     # 2b) entity proxies that don't have sameAs links to external sources and aren't connected to existing provided entities
     for entityProxy in entity_proxies:
-        providedEntityURI = URIRef(provided_entity_ns + str(providedEntityCount))
-        g.add((providedEntityURI, RDF.type, providedEntityTypeURI))
         entityProxyURI = URIRef(entityProxy)
-        g.add((entityProxyURI, entityProxyForPropertyURI, providedEntityURI))
-        providedEntityCount = providedEntityCount + 1
+        if entityProxyURI not in addedEntityProxies:
+            providedEntityURI = URIRef(provided_entity_ns + str(providedEntityCount))
+            g.add((providedEntityURI, RDF.type, providedEntityTypeURI))
+            g.add((entityProxyURI, entityProxyForPropertyURI, providedEntityURI))
+            addedEntityProxies.add(entityProxyURI)
+            providedEntityCount = providedEntityCount + 1
 
     logger.info(
         "Number of provided entities created (incl. for non-mapped proxies without existing ones): "
