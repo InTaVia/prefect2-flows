@@ -292,7 +292,7 @@ def create_provided_entities_graph(
     # sparql.setQuery(entityQuery)
     # sparql.setReturnFormat(JSON)
     results = sparql.query(entityQuery)
-    for result in results["results"].bindings:
+    for result in results.bindings:
         entityProxyURI = result["entity"].toPython()
         check = False
         entityProxy = URIRef(entityProxyURI)
